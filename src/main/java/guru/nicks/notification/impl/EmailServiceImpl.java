@@ -1,7 +1,7 @@
 package guru.nicks.notification.impl;
 
 import guru.nicks.notification.service.EmailService;
-import guru.nicks.service.FreemarkerTemplateRenderer;
+import guru.nicks.service.FreemarkerTemplateService;
 
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
@@ -9,21 +9,17 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
-import org.springframework.stereotype.Service;
 
 import java.util.Map;
 
 /**
- * Renders template with {@link FreemarkerTemplateRenderer} and sends message via {@link JavaMailSender} (configured
+ * Renders template with {@link FreemarkerTemplateService} and sends message via {@link JavaMailSender} (configured
  * elsewhere). Leverages retries and circuit breaking using
  * <a href="https://resilience4j.readme.io/docs/getting-started-3#configuration">Resilience4j configuration</a>
  * {@value #RESILIENCE4J_CONFIG_NAME}, if any (otherwise, default values apply).
  */
-@ConditionalOnMissingBean(EmailService.class)
-@Service
 @RequiredArgsConstructor
 @Slf4j
 public class EmailServiceImpl implements EmailService {
@@ -32,14 +28,14 @@ public class EmailServiceImpl implements EmailService {
 
     // DI
     private final JavaMailSender mailSender;
-    private final FreemarkerTemplateRenderer templateRenderer;
+    private final FreemarkerTemplateService templateService;
 
     @Retry(name = RESILIENCE4J_CONFIG_NAME)
     @CircuitBreaker(name = RESILIENCE4J_CONFIG_NAME)
     @Override
     public void sendHtmlWithTemplate(String from, String to, String subject,
             String templateName, Map<?, ?> templateContext) {
-        String body = templateRenderer.render(templateName, templateContext);
+        String body = templateService.render(templateName, templateContext);
         sendHtml(from, to, subject, body);
     }
 

@@ -2,7 +2,7 @@ package guru.nicks.cucumber;
 
 import guru.nicks.notification.impl.EmailServiceImpl;
 import guru.nicks.notification.service.EmailService;
-import guru.nicks.service.FreemarkerTemplateRenderer;
+import guru.nicks.service.FreemarkerTemplateService;
 
 import io.cucumber.java.After;
 import io.cucumber.java.Before;
@@ -34,7 +34,7 @@ public class EmailServiceSteps {
     @Mock
     private JavaMailSender mailSender;
     @Mock
-    private FreemarkerTemplateRenderer templateRenderer;
+    private FreemarkerTemplateService templateService;
     @Mock
     private MimeMessage mimeMessage;
     @Mock
@@ -71,7 +71,7 @@ public class EmailServiceSteps {
         when(mailSender.createMimeMessage())
                 .thenReturn(mimeMessage);
 
-        emailService = new EmailServiceImpl(mailSender, templateRenderer);
+        emailService = new EmailServiceImpl(mailSender, templateService);
     }
 
     @Given("an email service is configured with failing message helper")
@@ -82,7 +82,7 @@ public class EmailServiceSteps {
         doThrow(new MessagingException("Failed to set message properties"))
                 .when(messageHelper).setFrom(anyString());
 
-        emailService = new EmailServiceImpl(mailSender, templateRenderer);
+        emailService = new EmailServiceImpl(mailSender, templateService);
     }
 
     @Given("a template {string} exists with context")
@@ -91,7 +91,7 @@ public class EmailServiceSteps {
             templateContext.put(context.getKey(), context.getValue());
         }
 
-        when(templateRenderer.render(eq(templateName), any()))
+        when(templateService.render(eq(templateName), any()))
                 .thenReturn(renderedTemplate);
     }
 
@@ -109,7 +109,7 @@ public class EmailServiceSteps {
 
     @Then("the template should be rendered with correct name and parameters")
     public void theTemplateShouldBeRenderedWithCorrectNameAndParameters() {
-        verify(templateRenderer).render(templateName, templateContext);
+        verify(templateService).render(templateName, templateContext);
     }
 
     @Then("the email should be sent")
