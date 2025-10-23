@@ -1,8 +1,8 @@
 package guru.nicks.cucumber;
 
-import guru.nicks.FreemarkerTemplateRenderer;
 import guru.nicks.notification.impl.EmailServiceImpl;
 import guru.nicks.notification.service.EmailService;
+import guru.nicks.service.FreemarkerTemplateRenderer;
 
 import io.cucumber.java.After;
 import io.cucumber.java.Before;

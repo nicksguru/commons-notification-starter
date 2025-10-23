@@ -1,7 +1,7 @@
 package guru.nicks.notification.impl;
 
-import guru.nicks.FreemarkerTemplateRenderer;
 import guru.nicks.notification.service.EmailService;
+import guru.nicks.service.FreemarkerTemplateRenderer;
 
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
