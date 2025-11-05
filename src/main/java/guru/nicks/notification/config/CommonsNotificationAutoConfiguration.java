@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.mail.javamail.JavaMailSender;
 
 @Configuration(proxyBeanMethods = false)
-public class NotificationAutoConfiguration {
+public class CommonsNotificationAutoConfiguration {
 
     @ConditionalOnMissingBean(EmailService.class)
     @Bean
