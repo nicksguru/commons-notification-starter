@@ -15,7 +15,7 @@
     <version>1.2511.0</version><!-- [PVM] -->
 
     <name>Nicks.Guru Commons Notification Starter</name>
-    <description>Notification services</description>
+    <description>Starter for sending notifications</description>
     <url>https://github.com/nicksguru/commons-notification-starter</url>
 
     <licenses>
