@@ -1,7 +1,7 @@
 # [Nicks.Guru](https://nicks.guru) Commons Notification Starter
 
-:rocket:
 ![Latest version](https://img.shields.io/maven-central/v/guru.nicks.commons/notification-starter?filter=!25.*&label=Latest%20version:&cacheSeconds=10800)
+:rocket:
 ![Release date](https://img.shields.io/maven-central/last-update/guru.nicks.commons/notification-starter?label=&color=orange&cacheSeconds=10800)
 
 Starter for sending notifications.
