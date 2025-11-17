@@ -10,7 +10,7 @@ import java.util.Map;
  *
  * @param <T> alert category type
  */
-public interface AlertTransport<T extends Enum<T>> {
+public interface AlertTransport<T> {
 
     /**
      * Sends alert.

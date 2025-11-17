@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 @Slf4j
-public class AlertServiceImpl<T extends Enum<T>> implements AlertService<T> {
+public class AlertServiceImpl<T> implements AlertService<T> {
 
     private final List<? extends AlertTransport<T>> transports;
 

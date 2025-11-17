@@ -14,7 +14,7 @@ import java.util.Map;
  *
  * @param <T> alert category type
  */
-public interface AlertService<T extends Enum<T>> {
+public interface AlertService<T> {
 
     /**
      * Sends message via all {@link AlertTransport}'s and considers it sent if at least one transport succeeds.
