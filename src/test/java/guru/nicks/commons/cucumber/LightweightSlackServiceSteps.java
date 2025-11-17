@@ -1,8 +1,8 @@
-package guru.nicks.cucumber;
+package guru.nicks.commons.cucumber;
 
-import guru.nicks.cucumber.world.TextWorld;
-import guru.nicks.notification.impl.LightweightSlackServiceImpl;
-import guru.nicks.notification.service.LightweightSlackService;
+import guru.nicks.commons.cucumber.world.TextWorld;
+import guru.nicks.commons.notification.impl.LightweightSlackServiceImpl;
+import guru.nicks.commons.notification.service.LightweightSlackService;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;

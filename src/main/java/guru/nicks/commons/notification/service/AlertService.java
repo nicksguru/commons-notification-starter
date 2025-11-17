@@ -1,7 +1,7 @@
-package guru.nicks.notification.service;
+package guru.nicks.commons.notification.service;
 
-import guru.nicks.notification.AlertTransport;
-import guru.nicks.utils.ExceptionUtils;
+import guru.nicks.commons.notification.AlertTransport;
+import guru.nicks.commons.utils.ExceptionUtils;
 
 import jakarta.annotation.Nullable;
 

@@ -1,8 +1,8 @@
-package guru.nicks.notification.impl;
+package guru.nicks.commons.notification.impl;
 
-import guru.nicks.notification.service.LightweightSlackService;
-import guru.nicks.utils.Resilience4jUtils;
-import guru.nicks.utils.TimeUtils;
+import guru.nicks.commons.notification.service.LightweightSlackService;
+import guru.nicks.commons.utils.Resilience4jUtils;
+import guru.nicks.commons.utils.TimeUtils;
 
 import am.ik.yavi.meta.ConstraintArguments;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -23,9 +23,9 @@ import java.net.URL;
 import java.util.List;
 import java.util.Map;
 
-import static guru.nicks.validation.dsl.ValiDsl.check;
-import static guru.nicks.validation.dsl.ValiDsl.checkNotBlank;
-import static guru.nicks.validation.dsl.ValiDsl.checkNotNull;
+import static guru.nicks.commons.validation.dsl.ValiDsl.check;
+import static guru.nicks.commons.validation.dsl.ValiDsl.checkNotBlank;
+import static guru.nicks.commons.validation.dsl.ValiDsl.checkNotNull;
 
 /**
  * Very basic and lightweight REST client for Slack. Can't use Feign because Feign clients themselves may need it for

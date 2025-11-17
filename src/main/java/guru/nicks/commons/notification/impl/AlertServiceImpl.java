@@ -1,9 +1,9 @@
-package guru.nicks.notification.impl;
+package guru.nicks.commons.notification.impl;
 
-import guru.nicks.notification.AlertTransport;
-import guru.nicks.notification.service.AlertService;
-import guru.nicks.utils.FutureUtils;
-import guru.nicks.utils.TransformUtils;
+import guru.nicks.commons.notification.AlertTransport;
+import guru.nicks.commons.notification.service.AlertService;
+import guru.nicks.commons.utils.FutureUtils;
+import guru.nicks.commons.utils.TransformUtils;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;

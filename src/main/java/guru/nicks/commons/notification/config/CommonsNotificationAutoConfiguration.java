@@ -1,8 +1,8 @@
-package guru.nicks.notification.config;
+package guru.nicks.commons.notification.config;
 
-import guru.nicks.notification.impl.EmailServiceImpl;
-import guru.nicks.notification.service.EmailService;
-import guru.nicks.service.FreemarkerTemplateService;
+import guru.nicks.commons.notification.impl.EmailServiceImpl;
+import guru.nicks.commons.notification.service.EmailService;
+import guru.nicks.commons.service.FreemarkerTemplateService;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;

@@ -1,4 +1,4 @@
-package guru.nicks.notification;
+package guru.nicks.commons.notification;
 
 import java.util.Map;
 

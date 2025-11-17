@@ -1,4 +1,4 @@
 @NonNullApi
-package guru.nicks.notification.impl;
+package guru.nicks.commons.notification.service;
 
 import org.springframework.lang.NonNullApi;

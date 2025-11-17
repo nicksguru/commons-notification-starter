@@ -1,8 +1,8 @@
-package guru.nicks.notification.impl;
+package guru.nicks.commons.notification.impl;
 
-import guru.nicks.notification.service.EmailService;
-import guru.nicks.service.FreemarkerTemplateService;
-import guru.nicks.utils.Resilience4jUtils;
+import guru.nicks.commons.notification.service.EmailService;
+import guru.nicks.commons.service.FreemarkerTemplateService;
+import guru.nicks.commons.utils.Resilience4jUtils;
 
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.decorators.Decorators;
