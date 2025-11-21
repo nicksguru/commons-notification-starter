@@ -2,7 +2,7 @@ package guru.nicks.commons.notification.impl;
 
 import guru.nicks.commons.notification.service.LightweightSlackService;
 import guru.nicks.commons.utils.Resilience4jUtils;
-import guru.nicks.commons.utils.TimeUtils;
+import guru.nicks.commons.utils.text.TimeUtils;
 
 import am.ik.yavi.meta.ConstraintArguments;
 import com.fasterxml.jackson.core.JsonProcessingException;
