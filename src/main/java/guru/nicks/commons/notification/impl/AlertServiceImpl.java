@@ -47,19 +47,26 @@ public class AlertServiceImpl<T> implements AlertService<T> {
                         () -> sendViaTransport(category, transport, message, messageContext));
         List<Pair<Class<?>, RuntimeException>> results = FutureUtils.getInParallel(senders);
 
+        List<String> textResults = results.stream()
+                .map(pair -> pair.getLeft().getName()
+                        + ((pair.getRight() == null)
+                        ? "[OK]"
+                        : "[ERROR: " + pair.getValue().getMessage()))
+                .toList();
+
         long failureCount = results.stream()
                 .filter(pair -> pair.getValue() != null)
                 .count();
 
         if (failureCount == results.size()) {
-            log.error("Alert not sent, all transports failed: {}", results);
+            log.error("Alert not sent, all transports failed: {}", textResults);
             return false;
         }
 
         if (failureCount > 0) {
-            log.warn("Alert sent, but some transports failed: {}", results);
+            log.warn("Alert sent, but some transports failed: {}", textResults);
         } else {
-            log.debug("Alert sent, all transports succeeded: {}", results);
+            log.debug("Alert sent, all transports succeeded: {}", textResults);
         }
 
         return true;
@@ -77,13 +84,12 @@ public class AlertServiceImpl<T> implements AlertService<T> {
      */
     protected Pair<Class<?>, RuntimeException> sendViaTransport(T category,
             AlertTransport<T> transport, String message, Map<String, ?> messageVariables) {
-        var clazz = AopUtils.getTargetClass(transport.getClass());
 
         try {
             transport.send(category, message, messageVariables);
-            return Pair.of(clazz, null);
+            return Pair.of(transport.getClass(), null);
         } catch (RuntimeException e) {
-            return Pair.of(clazz, e);
+            return Pair.of(transport.getClass(), e);
         }
     }
 
