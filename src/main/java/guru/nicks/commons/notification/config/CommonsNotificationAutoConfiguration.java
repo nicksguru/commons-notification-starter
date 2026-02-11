@@ -4,12 +4,12 @@ import guru.nicks.commons.notification.impl.EmailServiceImpl;
 import guru.nicks.commons.notification.service.EmailService;
 import guru.nicks.commons.service.FreemarkerTemplateService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.mail.javamail.JavaMailSender;
 
-@Configuration(proxyBeanMethods = false)
+@AutoConfiguration
 @Slf4j
 public class CommonsNotificationAutoConfiguration {
 
