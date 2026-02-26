@@ -70,6 +70,7 @@ public class EmailServiceImpl implements EmailService {
                     + "to='{}', subject='{}'", to, subject);
         }
 
+        // circuit breaker is mentioned LAST, therefore applied FIRST - all retries are encapsulated as a single attempt
         Decorators.ofRunnable(() -> mailSender.send(message))
                 .withRetry(retrier)
                 .withCircuitBreaker(circuitBreaker)

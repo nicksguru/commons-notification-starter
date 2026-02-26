@@ -117,7 +117,7 @@ public class LightweightSlackServiceImpl implements LightweightSlackService {
 
         var request = new HttpEntity<>(json, headers);
 
-        // first decorate raw code with retry, so circuit breaker sees all retries as a single attempt
+        // circuit breaker is mentioned LAST, therefore applied FIRST - all retries are encapsulated as a single attempt
         Decorators.ofRunnable(() -> callSlackApi(request))
                 .withRetry(retrier)
                 .withCircuitBreaker(circuitBreaker)

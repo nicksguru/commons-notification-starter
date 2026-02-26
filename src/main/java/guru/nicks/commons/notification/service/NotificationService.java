@@ -1,6 +1,6 @@
 package guru.nicks.commons.notification.service;
 
-import guru.nicks.commons.notification.AlertTransport;
+import guru.nicks.commons.notification.NotificationTransport;
 import guru.nicks.commons.utils.ExceptionUtils;
 
 import jakarta.annotation.Nullable;
@@ -9,17 +9,19 @@ import java.util.Collections;
 import java.util.Map;
 
 /**
- * Implementations are supposed to send alerts via {@link AlertTransport}'s passed to their constructors. Also, they are
- * supposed to not throw exceptions if all the transports fail - alerts should not affect the business logic.
+ * Implementations are supposed to send notifications via {@link NotificationTransport}'s passed to their constructors.
+ * Also, they are supposed to NOT throw exceptions if some/all the transports fail - notifications should not affect the
+ * business logic.
  *
- * @param <T> alert category type
+ * @param <T> message category type
  */
-public interface AlertService<T> {
+public interface NotificationService<T> {
 
     /**
-     * Sends message via all {@link AlertTransport}'s and considers it sent if at least one transport succeeds.
+     * Sends message via all available {@link NotificationTransport}'s and considers it sent if at least one transport
+     * succeeds.
      *
-     * @param category       alert category
+     * @param category       message category
      * @param message        message text
      * @param messageContext key/value context to append after the message text
      * @return {@code true} if the message has been sent successfully via at least one transport
@@ -27,9 +29,10 @@ public interface AlertService<T> {
     boolean send(T category, String message, Map<String, ?> messageContext);
 
     /**
-     * Sends message via all {@link AlertTransport}'s and considers it sent if at least one transport succeeds.
+     * Sends message via all available {@link NotificationTransport}'s and considers it sent if at least one transport
+     * succeeds.
      *
-     * @param category alert category
+     * @param category message category
      * @param message  message text
      * @return {@code true} if the message has been sent successfully via at least one transport
      */
@@ -38,9 +41,10 @@ public interface AlertService<T> {
     }
 
     /**
-     * Sends message via all {@link AlertTransport}'s and considers it sent if at least one transport succeeds.
+     * Sends message via all available {@link NotificationTransport}'s and considers it sent if at least one transport
+     * succeeds.
      *
-     * @param category       alert category
+     * @param category       message category
      * @param message        message text
      * @param messageContext key/value context to append after the message text
      * @param t              exception
@@ -51,9 +55,10 @@ public interface AlertService<T> {
     }
 
     /**
-     * Sends message via all {@link AlertTransport}'s and considers it sent if at least one transport succeeds.
+     * Sends message via all available {@link NotificationTransport}'s and considers it sent if at least one transport
+     * succeeds.
      *
-     * @param category alert category
+     * @param category message category
      * @param message  message text
      * @param t        exception
      * @return {@code true} message sent
