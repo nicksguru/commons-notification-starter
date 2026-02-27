@@ -1,17 +1,10 @@
 package guru.nicks.commons.notification.impl;
 
 import guru.nicks.commons.notification.service.LightweightSlackService;
-import guru.nicks.commons.utils.Resilience4jUtils;
-import guru.nicks.commons.utils.text.TimeUtils;
 
 import am.ik.yavi.meta.ConstraintArguments;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.github.resilience4j.circuitbreaker.CircuitBreaker;
-import io.github.resilience4j.decorators.Decorators;
-import io.github.resilience4j.retry.Retry;
-import io.github.resilience4j.retry.event.RetryOnErrorEvent;
-import io.github.resilience4j.retry.event.RetryOnRetryEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.HttpEntity;
@@ -31,8 +24,9 @@ import static guru.nicks.commons.validation.dsl.ValiDsl.checkNotNull;
  * Very basic and lightweight REST client for Slack. Can't use Feign because Feign clients themselves may need it for
  * sending error alerts. Resilience4j (with default settings) is leveraged for retries and circuit breaking.
  * <p>
- * NOTE: this is not a Spring bean because each instance needs a different Slack API URL - to send messages to
- * different Slack channels.
+ * This is not a Spring bean because each instance needs a different Slack API URL - to send messages to different Slack
+ * channels. Subclasses are encouraged to create Spring beans and annotate them with rate limiting and circuit breaking
+ * annotations.
  */
 @Slf4j
 public class LightweightSlackServiceImpl implements LightweightSlackService {
@@ -50,9 +44,6 @@ public class LightweightSlackServiceImpl implements LightweightSlackService {
     private static final String EMOJI = "emoji";
     private static final String HEADER = "header";
     private static final String SECTION = "section";
-
-    private final Retry retrier;
-    private final CircuitBreaker circuitBreaker;
 
     private final String serviceName;
     private final String webHookUrl;
@@ -87,13 +78,6 @@ public class LightweightSlackServiceImpl implements LightweightSlackService {
         headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setAccept(List.of(MediaType.APPLICATION_JSON));
-
-        retrier = Resilience4jUtils.createDefaultRetrier(getClass().getName() + " - " + serviceName);
-        // WARNING: the Slack API URL must NOT be revealed in log messages because it contains a secret token!
-        retrier.getEventPublisher()
-                .onRetry(this::handleRetryEvent)
-                .onError(this::handleErrorEvent);
-        circuitBreaker = Resilience4jUtils.createDefaultCircuitBreaker(getClass().getName() + " - " + serviceName);
     }
 
     @ConstraintArguments
@@ -116,12 +100,7 @@ public class LightweightSlackServiceImpl implements LightweightSlackService {
         }
 
         var request = new HttpEntity<>(json, headers);
-
-        // circuit breaker is mentioned LAST, therefore applied FIRST - all retries are encapsulated as a single attempt
-        Decorators.ofRunnable(() -> callSlackApi(request))
-                .withRetry(retrier)
-                .withCircuitBreaker(circuitBreaker)
-                .run();
+        callSlackApi(request);
     }
 
     @Override
@@ -161,37 +140,6 @@ public class LightweightSlackServiceImpl implements LightweightSlackService {
                 TEXT, Map.of(
                         TYPE, MRKDWN,
                         TEXT, StringUtils.substring(text, 0, MAX_TEXT_LENGTH)));
-    }
-
-    /**
-     * Logs each upcoming retry.
-     *
-     * @param event event  the retry event
-     */
-    private void handleRetryEvent(RetryOnRetryEvent event) {
-        log.error("Attempt #{} to call Slack from '{}' failed (will retry in {}): {}",
-                // starts with 1 because this handler is called before the 1st retry
-                event.getNumberOfRetryAttempts(),
-                serviceName,
-                TimeUtils.humanFormatDuration(event.getWaitInterval()),
-                event.getLastThrowable(),
-                // goes to logger implicitly, for stack trace
-                event.getLastThrowable());
-    }
-
-    /**
-     * Sends alert after the last failed retry.
-     *
-     * @param event event  the error event
-     */
-    private void handleErrorEvent(RetryOnErrorEvent event) {
-        log.error("Attempt #{} to call Slack from '{}' failed (no more retries left): {}",
-                // actually this is the total number of attempts, including the very first one
-                event.getNumberOfRetryAttempts(),
-                serviceName,
-                event.getLastThrowable(),
-                // goes to logger implicitly, for stack trace
-                event.getLastThrowable());
     }
 
 }

@@ -10,8 +10,7 @@ import io.cucumber.java.DataTableType;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import io.github.resilience4j.circuitbreaker.CircuitBreaker;
-import io.github.resilience4j.ratelimiter.RateLimiter;
+import jakarta.annotation.Nonnull;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -253,7 +252,7 @@ public class NotificationServiceSteps {
     /**
      * Test implementation of {@link NotificationTransport}.
      */
-    public static class TestNotificationTransport extends NotificationTransport<TestCategory> {
+    public static class TestNotificationTransport implements NotificationTransport<TestCategory> {
 
         private final String name;
         private final AtomicInteger callCount = new AtomicInteger(0);
@@ -269,13 +268,12 @@ public class NotificationServiceSteps {
         private Map<String, ?> lastMessageContext;
 
         public TestNotificationTransport(String name) {
-            // no-op circuit breaker to avoid NPE
-            super(RateLimiter.ofDefaults(name + "-rl"), CircuitBreaker.ofDefaults(name + "-cb"));
             this.name = name;
         }
 
         @Override
-        protected void sendRaw(TestCategory category, String message, Map<String, ?> messageContext) {
+        public void send(@Nonnull TestCategory category, @Nonnull String message,
+                @Nonnull Map<String, ?> messageContext) {
             callCount.incrementAndGet();
 
             this.lastCategory = category;

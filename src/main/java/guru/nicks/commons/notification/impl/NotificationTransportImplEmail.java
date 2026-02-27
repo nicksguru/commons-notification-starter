@@ -3,12 +3,7 @@ package guru.nicks.commons.notification.impl;
 import guru.nicks.commons.notification.NotificationCategory;
 import guru.nicks.commons.notification.NotificationTransport;
 import guru.nicks.commons.notification.service.EmailService;
-import guru.nicks.commons.utils.Resilience4jUtils;
 import guru.nicks.commons.utils.TransformUtils;
-
-import io.github.resilience4j.circuitbreaker.CircuitBreaker;
-import io.github.resilience4j.ratelimiter.RateLimiter;
-import jakarta.annotation.Nullable;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -24,7 +19,7 @@ import static guru.nicks.commons.validation.dsl.ValiDsl.checkNotNull;
  *
  * @param <T> notification category type
  */
-public class NotificationTransportImplEmail<T extends NotificationCategory> extends NotificationTransport<T> {
+public class NotificationTransportImplEmail<T extends NotificationCategory> implements NotificationTransport<T> {
 
     private final EmailService emailService;
     private final String messageSubject;
@@ -35,20 +30,15 @@ public class NotificationTransportImplEmail<T extends NotificationCategory> exte
     /**
      * Constructor.
      *
-     * @param rateLimiter    rate limiter, can be {@code null} or e.g.
-     *                       {@link Resilience4jUtils#createDefaultRateLimiter(String)}
-     * @param circuitBreaker circuit breaker, can be {@code null} or e.g.
-     *                       {@link Resilience4jUtils#createDefaultCircuitBreaker(String)}
-     * @param emailService   email service
-     * @param originator     message originator, such as application name, must not be blank
-     * @param from           'from' address
-     * @param to             'to' addresses (comma-separated)
-     * @param templateName   template name for
-     *                       {@link EmailService#sendHtmlWithTemplate(String, String, String, String, Map)}
+     * @param emailService email service
+     * @param originator   message originator, such as application name, must not be blank
+     * @param from         'from' address
+     * @param to           'to' addresses (comma-separated)
+     * @param templateName template name for
+     *                     {@link EmailService#sendHtmlWithTemplate(String, String, String, String, Map)}
      */
-    public NotificationTransportImplEmail(@Nullable RateLimiter rateLimiter, @Nullable CircuitBreaker circuitBreaker,
-            EmailService emailService, String originator, String from, String to, String templateName) {
-        super(rateLimiter, circuitBreaker);
+    public NotificationTransportImplEmail(EmailService emailService, String originator, String from, String to,
+            String templateName) {
 
         this.emailService = checkNotNull(emailService, "emailService");
         this.messageSubject = checkNotBlank(originator, "messageSubject");
@@ -58,7 +48,9 @@ public class NotificationTransportImplEmail<T extends NotificationCategory> exte
     }
 
     @Override
-    protected void sendRaw(T category, String message, Map<String, ?> messageContext) {
+    public void send(T category, String message, Map<String, ?> messageContext) {
+        checkNotNull(category, "category");
+
         // Freemarker demands that, if map is to be iterated in template, all of its values be strings
         Map<String, String> contextWithStringValues = (messageContext == null)
                 ? Collections.emptyMap()

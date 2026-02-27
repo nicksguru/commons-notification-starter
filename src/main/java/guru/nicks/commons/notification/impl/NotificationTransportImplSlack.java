@@ -3,12 +3,8 @@ package guru.nicks.commons.notification.impl;
 import guru.nicks.commons.notification.NotificationCategory;
 import guru.nicks.commons.notification.NotificationTransport;
 import guru.nicks.commons.notification.service.LightweightSlackService;
-import guru.nicks.commons.utils.Resilience4jUtils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.github.resilience4j.circuitbreaker.CircuitBreaker;
-import io.github.resilience4j.ratelimiter.RateLimiter;
-import jakarta.annotation.Nullable;
 import org.apache.commons.collections4.MapUtils;
 
 import java.util.Map;
@@ -21,7 +17,7 @@ import static guru.nicks.commons.validation.dsl.ValiDsl.checkNotNull;
  *
  * @param <T> notification category type
  */
-public class NotificationTransportImplSlack<T extends NotificationCategory> extends NotificationTransport<T> {
+public class NotificationTransportImplSlack<T extends NotificationCategory> implements NotificationTransport<T> {
 
     private final LightweightSlackService slackService;
     private final ObjectMapper objectMapper;
@@ -30,24 +26,21 @@ public class NotificationTransportImplSlack<T extends NotificationCategory> exte
     /**
      * Constructor.
      *
-     * @param rateLimiter    rate limiter, can be {@code null} or e.g.
-     *                       {@link Resilience4jUtils#createDefaultRateLimiter(String)}
-     * @param circuitBreaker circuit breaker, can be {@code null} or e.g.
-     *                       {@link Resilience4jUtils#createDefaultCircuitBreaker(String)}
-     * @param slackService   Slack service
-     * @param objectMapper   Jackson object mapper
-     * @param originator     message originator, such as application name, must not be blank
+     * @param slackService Slack service
+     * @param objectMapper Jackson object mapper
+     * @param originator   message originator, such as application name, must not be blank
      */
-    public NotificationTransportImplSlack(@Nullable RateLimiter rateLimiter, @Nullable CircuitBreaker circuitBreaker,
-            LightweightSlackService slackService, ObjectMapper objectMapper, String originator) {
-        super(rateLimiter, circuitBreaker);
+    public NotificationTransportImplSlack(LightweightSlackService slackService, ObjectMapper objectMapper,
+            String originator) {
         this.slackService = checkNotNull(slackService, "slackService");
         this.objectMapper = checkNotNull(objectMapper, "objectMapper");
         this.originator = checkNotBlank(originator, "originator");
     }
 
     @Override
-    protected void sendRaw(T category, String message, Map<String, ?> messageContext) {
+    public void send(T category, String message, Map<String, ?> messageContext) {
+        checkNotNull(category, "category");
+        checkNotBlank(message, "message");
         var text = new StringBuilder(message);
 
         if (!MapUtils.isEmpty(messageContext)) {

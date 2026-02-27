@@ -1,7 +1,5 @@
 package guru.nicks.commons.notification.service;
 
-import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
-
 import java.util.Map;
 
 /**
@@ -14,8 +12,6 @@ public interface LightweightSlackService {
      * <a href="https://api.slack.com/messaging/webhooks#advanced_message_formatting">format spec</a>.
      *
      * @param map to be converted to JSON
-     * @throws CallNotPermittedException if circuit breaker is not open
-     * @throws RuntimeException          if retries fail (this is the original exception from the underlying code)
      */
     void send(Map<String, ?> map);
 

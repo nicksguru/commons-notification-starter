@@ -2,11 +2,7 @@ package guru.nicks.commons.notification.impl;
 
 import guru.nicks.commons.notification.service.EmailService;
 import guru.nicks.commons.service.FreemarkerTemplateService;
-import guru.nicks.commons.utils.Resilience4jUtils;
 
-import io.github.resilience4j.circuitbreaker.CircuitBreaker;
-import io.github.resilience4j.decorators.Decorators;
-import io.github.resilience4j.retry.Retry;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
@@ -17,28 +13,16 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import java.util.Map;
 
 /**
- * Renders templates with {@link FreemarkerTemplateService} and sends messages via {@link JavaMailSender}. Leverages
- * retries and circuit breaking (see
- * <a href="https://resilience4j.readme.io/docs/getting-started-3#configuration">Resilience4j configuration</a>)
- * by calling {@link #createRetrier()} and {@link #createCircuitBreaker()} from the constructor.
+ * Renders templates with {@link FreemarkerTemplateService} and sends messages via {@link JavaMailSender}. Subclasses
+ * are encouraged to create Spring beans and annotate them with rate limiting and circuit breaking annotations.
  */
 @RequiredArgsConstructor
 @Slf4j
 public class EmailServiceImpl implements EmailService {
 
+    // DI
     private final JavaMailSender mailSender;
     private final FreemarkerTemplateService templateService;
-
-    private final Retry retrier;
-    private final CircuitBreaker circuitBreaker;
-
-    public EmailServiceImpl(JavaMailSender mailSender, FreemarkerTemplateService templateService) {
-        this.mailSender = mailSender;
-        this.templateService = templateService;
-
-        retrier = createRetrier();
-        circuitBreaker = createCircuitBreaker();
-    }
 
     @Override
     public void sendHtmlWithTemplate(String from, String to, String subject,
@@ -70,37 +54,7 @@ public class EmailServiceImpl implements EmailService {
                     + "to='{}', subject='{}'", to, subject);
         }
 
-        // circuit breaker is mentioned LAST, therefore applied FIRST - all retries are encapsulated as a single attempt
-        Decorators.ofRunnable(() -> mailSender.send(message))
-                .withRetry(retrier)
-                .withCircuitBreaker(circuitBreaker)
-                .run();
-    }
-
-    /**
-     * Creates a {@link Retry} for handling email sending failures. Default implementation calls
-     * {@link Resilience4jUtils#createDefaultRetrier(String)} to create a retrier with a default configuration,
-     * identified by the name of this class (i.e. possibly a subclass).
-     * <p>
-     * WARNING: this method is called by the constructor, which means the object state is undefined.
-     *
-     * @return {@link Retry} instance.
-     */
-    protected Retry createRetrier() {
-        return Resilience4jUtils.createDefaultRetrier(getClass().getName());
-    }
-
-    /**
-     * Creates a {@link CircuitBreaker} for handling email sending failures. Default implementation calls
-     * {@link Resilience4jUtils#createDefaultCircuitBreaker(String)} to create a circuit breaker with a default
-     * configuration, identified by the name of this class (i.e. possibly a subclass).
-     * <p>
-     * WARNING: this method is called by the constructor, which means the object state is undefined.
-     *
-     * @return {@link CircuitBreaker} instance.
-     */
-    protected CircuitBreaker createCircuitBreaker() {
-        return Resilience4jUtils.createDefaultCircuitBreaker(getClass().getName());
+        mailSender.send(message);
     }
 
 }
