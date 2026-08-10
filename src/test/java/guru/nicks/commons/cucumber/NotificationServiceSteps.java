@@ -5,7 +5,6 @@ import guru.nicks.commons.notification.NotificationCategory;
 import guru.nicks.commons.notification.NotificationTransport;
 import guru.nicks.commons.notification.impl.NotificationServiceImpl;
 
-import io.cucumber.java.Before;
 import io.cucumber.java.DataTableType;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -17,16 +16,23 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
 import org.slf4j.event.Level;
+import org.togglz.core.Feature;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiConsumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 /**
  * Step definitions for testing {@link NotificationServiceImpl}.
@@ -37,8 +43,8 @@ public class NotificationServiceSteps {
 
     // DI
     private final TextWorld textWorld;
-    private final List<TestNotificationTransport> transports = new ArrayList<>();
 
+    private final List<TestNotificationTransport> transports = new ArrayList<>();
     private final TestNotificationTransport transport1 = new TestNotificationTransport("Transport1");
     private final TestNotificationTransport transport2 = new TestNotificationTransport("Transport2");
     private final TestNotificationTransport transport3 = new TestNotificationTransport("Transport3");
@@ -46,19 +52,12 @@ public class NotificationServiceSteps {
     private NotificationServiceImpl<TestCategory> notificationService;
     private TestCategory category;
     private String message;
-    private Map<String, Object> messageContext;
+    private Map<String, Object> messageContext = new HashMap<>();
+
     private Boolean sendResult;
-
-    @Before
-    public void beforeEachScenario() {
-        transports.clear();
-        // reset call counts and exception settings
-        transport1.reset();
-        transport2.reset();
-        transport3.reset();
-
-        messageContext = new HashMap<>();
-    }
+    private boolean featureEnabled = true;
+    private Logger fallbackLogger;
+    private BiConsumer<String, Throwable> errorNotifier;
 
     @DataTableType
     public MessageContext createMessageContext(Map<String, String> entry) {
@@ -71,14 +70,14 @@ public class NotificationServiceSteps {
     @When("notification service is created with empty transports list")
     public void notificationServiceIsCreatedWithEmptyTransportsList() {
         var throwable = catchThrowable(() ->
-                new NotificationServiceImpl<>(List.of()));
+                new NotificationServiceImpl<>(List.of(), feature -> featureEnabled));
         textWorld.setLastException(throwable);
     }
 
     @When("notification service is created with null transports list")
     public void notificationServiceIsCreatedWithNullTransportsList() {
         var throwable = catchThrowable(() ->
-                new NotificationServiceImpl<>(null));
+                new NotificationServiceImpl<>(null, feature -> featureEnabled));
         textWorld.setLastException(throwable);
     }
 
@@ -95,7 +94,7 @@ public class NotificationServiceSteps {
             transports.add(transport);
         }
 
-        notificationService = new NotificationServiceImpl<>(transports);
+        notificationService = new NotificationServiceImpl<>(transports, feature -> featureEnabled);
     }
 
     @Given("a notification service is configured with duplicate transports")
@@ -104,12 +103,7 @@ public class NotificationServiceSteps {
         transports.add(transport1);
         transports.add(transport2);
 
-        notificationService = new NotificationServiceImpl<>(transports);
-    }
-
-    @Given("transport {int} sends successfully")
-    public void transportSendsSuccessfully(int transportNumber) {
-        // default behavior is success, no need to configure
+        notificationService = new NotificationServiceImpl<>(transports, feature -> featureEnabled);
     }
 
     @Given("transport {int} fails with exception {string}")
@@ -117,11 +111,6 @@ public class NotificationServiceSteps {
         var transport = getTransport(transportNumber);
         RuntimeException exception = createException(exceptionClassName);
         transport.setExceptionToThrow(exception);
-    }
-
-    @Given("all transports send successfully")
-    public void allTransportsSendSuccessfully() {
-        // default behavior is success, no need to configure
     }
 
     @When("notification is sent with category {string} message {string} and empty context")
@@ -217,6 +206,42 @@ public class NotificationServiceSteps {
                 .hasSize(expectedContextSize);
     }
 
+    @Given("the feature is enabled")
+    public void featureIsEnabled() {
+        featureEnabled = true;
+    }
+
+    @Given("the feature is disabled")
+    public void featureIsDisabled() {
+        featureEnabled = false;
+    }
+
+    @When("an error notifier is created for category {string} with a fallback logger")
+    public void errorNotifierIsCreatedForCategoryWithFallbackLogger(String category) {
+        var testCategory = TestCategory.valueOf(category.toUpperCase());
+        fallbackLogger = mock(Logger.class);
+        errorNotifier = notificationService.wrapErrorNotifier(TestFeature.NOTIFICATIONS, testCategory, fallbackLogger);
+    }
+
+    @When("the error notifier is called with message {string} and a {string}")
+    public void errorNotifierIsCalledWithMessageAndException(String message, String exceptionClassName) {
+        var exception = createException(exceptionClassName);
+        errorNotifier.accept(message, exception);
+    }
+
+    @Then("the fallback logger should receive the message {string}")
+    public void fallbackLoggerShouldReceiveMessage(String expectedMessage) {
+        verify(fallbackLogger).error(eq(expectedMessage), any(Throwable.class));
+    }
+
+    @Then("transport {int} should be called with message containing {string}")
+    public void transportShouldBeCalledWithMessageContaining(int transportNumber, String expectedFragment) {
+        var transport = getTransport(transportNumber);
+        assertThat(transport.getLastMessage())
+                .as("last message")
+                .contains(expectedFragment);
+    }
+
     private TestNotificationTransport getTransport(int transportNumber) {
         return transports.get(transportNumber - 1);
     }
@@ -247,6 +272,13 @@ public class NotificationServiceSteps {
             this.logLevel = logLevel;
             this.description = description;
         }
+    }
+
+    /**
+     * Test feature for toggle testing.
+     */
+    public enum TestFeature implements Feature {
+        NOTIFICATIONS
     }
 
     /**
@@ -287,15 +319,6 @@ public class NotificationServiceSteps {
 
         public int getCallCount() {
             return callCount.get();
-        }
-
-        public void reset() {
-            callCount.set(0);
-
-            exceptionToThrow = null;
-            lastCategory = null;
-            lastMessage = null;
-            lastMessageContext = null;
         }
 
         @Override

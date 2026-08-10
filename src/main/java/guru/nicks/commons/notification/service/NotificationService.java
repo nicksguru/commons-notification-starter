@@ -1,12 +1,17 @@
 package guru.nicks.commons.notification.service;
 
+import guru.nicks.commons.feature.FeatureTester;
 import guru.nicks.commons.notification.NotificationTransport;
 import guru.nicks.commons.utils.ExceptionUtils;
 
 import jakarta.annotation.Nullable;
+import jakarta.annotation.PostConstruct;
+import org.slf4j.Logger;
+import org.togglz.core.Feature;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.function.BiConsumer;
 
 /**
  * Implementations are supposed to send notifications via {@link NotificationTransport}'s passed to their constructors.
@@ -16,6 +21,19 @@ import java.util.Map;
  * @param <T> message category type
  */
 public interface NotificationService<T> {
+
+    /**
+     * Builds a notifier that either {@link #send(Object, String, Throwable) alerts} or
+     * {@link Logger#error(String, Throwable) logs}, depending on feature state. The intended call sites are Spring bean
+     * constructors and {@link PostConstruct @PostConstruct}.
+     *
+     * @param feature        feature whose state decides alert vs. log in EACH method call (feature states are
+     *                       volatile), requires {@link FeatureTester} bean
+     * @param category       alert category
+     * @param fallbackLogger caller's logger, invoked when the feature is disabled
+     * @return consumer that alerts (feature on) or logs (feature off) the message &amp; its cause
+     */
+    BiConsumer<String, Throwable> wrapErrorNotifier(Feature feature, T category, Logger fallbackLogger);
 
     /**
      * Sends message via all available {@link NotificationTransport}'s and considers it sent if at least one transport

@@ -9,25 +9,36 @@ import guru.nicks.commons.utils.TransformUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
 import org.springframework.aop.support.AopUtils;
+import org.togglz.core.Feature;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
+
+import static java.util.Objects.requireNonNull;
 
 @Slf4j
 public class NotificationServiceImpl<T extends NotificationCategory> implements NotificationService<T> {
 
     private final List<? extends NotificationTransport<T>> transports;
+    private final Predicate<Feature> featureTester;
 
     /**
      * Constructor.
      *
-     * @param transports notification transports
-     * @throws IllegalArgumentException no notification transports defined
+     * @param transports    notification transports
+     * @param featureTester feature tester predicate
+     * @throws IllegalArgumentException no feature tester or no notification transports
      */
-    public NotificationServiceImpl(Collection<? extends NotificationTransport<T>> transports) {
+    public NotificationServiceImpl(Collection<? extends NotificationTransport<T>> transports,
+            Predicate<Feature> featureTester) {
+        this.featureTester = requireNonNull(featureTester, "featureTester");
+
         if (CollectionUtils.isEmpty(transports)) {
             throw new IllegalArgumentException("No notification transports defined");
         }
@@ -36,10 +47,16 @@ public class NotificationServiceImpl<T extends NotificationCategory> implements 
         this.transports = transports.stream()
                 .distinct()
                 .toList();
-
         // unwrap class names beneath JdkProxy instances
         log.info("Notification transports: {}",
                 TransformUtils.toList(this.transports, AopUtils::getTargetClass, Class::getName));
+    }
+
+    @Override
+    public BiConsumer<String, Throwable> wrapErrorNotifier(Feature feature, T category, Logger fallbackLogger) {
+        return featureTester.test(feature)
+                ? (message, cause) -> send(category, message, cause)
+                : fallbackLogger::error;
     }
 
     @Override

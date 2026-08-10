@@ -14,7 +14,6 @@ Feature: Notification Service
 
   Scenario: Send notification via single successful transport
     Given a notification service is configured with 1 transport
-    And transport 1 sends successfully
     When notification is sent with category "INFO" message "Test message" and context
       | key  | value |
       | user | test  |
@@ -22,15 +21,12 @@ Feature: Notification Service
 
   Scenario: Send notification via multiple successful transports
     Given a notification service is configured with 3 transports
-    And all transports send successfully
     When notification is sent with category "ERROR" message "Error occurred" and empty context
     Then the notification should be sent successfully
 
   Scenario Outline: Send notification when some transports fail
     Given a notification service is configured with 3 transports
-    And transport 1 sends successfully
     And transport 2 fails with exception "<exception2>"
-    And transport 3 sends successfully
     When notification is sent with category "WARNING" message "Warning message" and empty context
     Then the notification should be sent successfully
     Examples:
@@ -59,13 +55,11 @@ Feature: Notification Service
 
   Scenario: Send notification with null message context
     Given a notification service is configured with 1 transport
-    And transport 1 sends successfully
     When notification is sent with category "INFO" message "Test message" and null context
     Then the notification should be sent successfully
 
   Scenario Outline: Send notification with different categories
     Given a notification service is configured with 1 transport
-    And transport 1 sends successfully
     When notification is sent with category "<category>" message "Category test" and empty context
     Then the notification should be sent successfully
     Examples:
@@ -76,7 +70,6 @@ Feature: Notification Service
 
   Scenario: Transport is called with correct parameters
     Given a notification service is configured with 1 transport
-    And transport 1 sends successfully
     When notification is sent with category "INFO" message "Test message" and context
       | key       | value   |
       | userId    | 123     |
@@ -86,14 +79,42 @@ Feature: Notification Service
 
   Scenario: Send notification without context map
     Given a notification service is configured with 1 transport
-    And transport 1 sends successfully
     When notification is sent with category "INFO" message "Simple message" and empty context
     Then the notification should be sent successfully
     And transport 1 should be called with category "INFO" message "Simple message" and context size 0
 
   Scenario: Parallel execution of multiple transports
     Given a notification service is configured with 3 transports
-    And all transports send successfully
     When notification is sent with category "INFO" message "Parallel test" and empty context
     Then the notification should be sent successfully
     And all 3 transports should be called
+
+  Scenario: wrapNotifier sends notification when feature is enabled
+    Given a notification service is configured with 1 transport
+    And the feature is enabled
+    When an error notifier is created for category "INFO" with a fallback logger
+    And the error notifier is called with message "Something failed" and a "RuntimeException"
+    Then transport 1 should be called exactly 1 time
+    And transport 1 should be called with message containing "Something failed"
+
+  Scenario: wrapNotifier logs to fallback logger when feature is disabled
+    Given a notification service is configured with 1 transport
+    And the feature is disabled
+    When an error notifier is created for category "ERROR" with a fallback logger
+    And the error notifier is called with message "Boot failed" and a "IllegalStateException"
+    Then the fallback logger should receive the message "Boot failed"
+    And transport 1 should be called exactly 0 times
+
+  Scenario Outline: wrapNotifier respects feature toggle for different categories
+    Given a notification service is configured with 1 transport
+    And the feature is <featureState>
+    When an error notifier is created for category "<category>" with a fallback logger
+    And the error notifier is called with message "Test message" and a "RuntimeException"
+    Then transport 1 should be called exactly <transportCalls> time
+    Examples:
+      | category | featureState | transportCalls |
+      | INFO     | enabled      | 1              |
+      | WARNING  | enabled      | 1              |
+      | ERROR    | enabled      | 1              |
+      | INFO     | disabled     | 0              |
+      | ERROR    | disabled     | 0              |
