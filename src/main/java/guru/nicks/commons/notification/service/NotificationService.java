@@ -1,6 +1,7 @@
 package guru.nicks.commons.notification.service;
 
 import guru.nicks.commons.feature.FeatureTester;
+import guru.nicks.commons.notification.NotificationCategory;
 import guru.nicks.commons.notification.NotificationTransport;
 import guru.nicks.commons.utils.ExceptionUtils;
 
@@ -20,10 +21,10 @@ import java.util.function.BiConsumer;
  *
  * @param <T> message category type
  */
-public interface NotificationService<T> {
+public interface NotificationService<T extends NotificationCategory> {
 
     /**
-     * Builds a notifier that either {@link #send(Object, String, Throwable) alerts} or
+     * Builds a notifier that either {@link #send(NotificationCategory, String, Throwable) alerts} or
      * {@link Logger#error(String, Throwable) logs}, depending on feature state. The intended call sites are Spring bean
      * constructors and {@link PostConstruct @PostConstruct}.
      *
