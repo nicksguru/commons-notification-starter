@@ -16,11 +16,13 @@ import io.cucumber.java.en.When;
 import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.springframework.http.HttpEntity;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.http.HttpStatus;
+import org.springframework.mock.http.client.MockClientHttpRequest;
+import org.springframework.test.web.client.ExpectedCount;
+import org.springframework.test.web.client.MockRestServiceServer;
+import org.springframework.web.client.RestClient;
 
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -31,13 +33,13 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 
 /**
- * Step definitions for testing {@link LightweightSlackServiceImpl}.
+ * Step definitions for testing {@link LightweightSlackServiceImpl}. HTTP layer is mocked with
+ * {@link MockRestServiceServer} bound to a real {@link RestClient}.
  */
 @RequiredArgsConstructor
 public class LightweightSlackServiceSteps {
@@ -46,10 +48,12 @@ public class LightweightSlackServiceSteps {
     private final TextWorld textWorld;
 
     @Mock
-    private RestTemplate restTemplate;
-    @Mock
     private ObjectMapper objectMapper;
     private AutoCloseable closeableMocks;
+
+    private RestClient restClient;
+    private MockRestServiceServer mockServer;
+    private String capturedRequestBody;
 
     private LightweightSlackService slackService;
     private URL webhookUrl;
@@ -58,6 +62,10 @@ public class LightweightSlackServiceSteps {
     @Before
     public void beforeEachScenario() {
         closeableMocks = MockitoAnnotations.openMocks(this);
+
+        var builder = RestClient.builder();
+        mockServer = MockRestServiceServer.bindTo(builder).build();
+        restClient = builder.build();
     }
 
     @After
@@ -76,14 +84,15 @@ public class LightweightSlackServiceSteps {
     @Given("a Slack service is configured with webhook URL {string}")
     public void aSlackServiceIsConfiguredWithWebhookURL(String url) throws MalformedURLException {
         webhookUrl = URI.create(url).toURL();
-        slackService = new LightweightSlackServiceImpl("testService", webhookUrl, restTemplate, objectMapper);
+        slackService = new LightweightSlackServiceImpl("testService", webhookUrl, restClient, objectMapper);
+        setupPostExpectation();
     }
 
     @Given("a webhook URL with unexpanded environment variable {string} is provided")
     public void aWebhookURLWithUnexpandedEnvironmentVariableIsProvided(String url) {
         try {
             webhookUrl = URI.create("https://" + url).toURL();
-            slackService = new LightweightSlackServiceImpl("testService", webhookUrl, restTemplate, objectMapper);
+            slackService = new LightweightSlackServiceImpl("testService", webhookUrl, restClient, objectMapper);
         }
         // catch not only MalformedURLException, but IllegalArgumentException from service constructor
         catch (Exception e) {
@@ -146,28 +155,14 @@ public class LightweightSlackServiceSteps {
         jsonRequest = jsonString;
     }
 
-    @Then("the REST template should post to the webhook URL")
-    public void theRESTTemplateShouldPostToTheWebhookURL() {
-        verify(restTemplate).postForEntity(
-                eq(webhookUrl.toString()),
-                any(HttpEntity.class),
-                eq(Void.class)
-        );
+    @Then("the REST client should post to the webhook URL")
+    public void theRestClientShouldPostToTheWebhookURL() {
+        mockServer.verify();
     }
 
     @And("the request body should contain {string}")
     public void theRequestBodyShouldContain(String expectedContent) {
-        ArgumentCaptor<HttpEntity<?>> entityCaptor = ArgumentCaptor.forClass(HttpEntity.class);
-
-        verify(restTemplate).postForEntity(
-                anyString(),
-                entityCaptor.capture(),
-                eq(Void.class)
-        );
-
-        var requestBody = entityCaptor.getValue().getBody().toString();
-
-        assertThat(requestBody)
+        assertThat(capturedRequestBody)
                 .as("request body")
                 .contains(expectedContent);
     }
@@ -191,24 +186,23 @@ public class LightweightSlackServiceSteps {
 
     @And("the request body should contain a section with text not exceeding {int} characters")
     public void theRequestBodyShouldContainASectionWithTextNotExceedingCharacters(int maxLength) {
-        ArgumentCaptor<HttpEntity<?>> entityCaptor = ArgumentCaptor.forClass(HttpEntity.class);
-
-        verify(restTemplate).postForEntity(
-                anyString(),
-                entityCaptor.capture(),
-                eq(Void.class)
-        );
-
-        var requestBody = entityCaptor.getValue().getBody().toString();
-
         // extract the text content between the last "text":"..." in the JSON
-        int textStartIndex = requestBody.lastIndexOf("\"text\":\"") + 8;
-        int textEndIndex = requestBody.indexOf("\"", textStartIndex);
-        String textContent = requestBody.substring(textStartIndex, textEndIndex);
+        int textStartIndex = capturedRequestBody.lastIndexOf("\"text\":\"") + 8;
+        int textEndIndex = capturedRequestBody.indexOf("\"", textStartIndex);
+        String textContent = capturedRequestBody.substring(textStartIndex, textEndIndex);
 
         assertThat(textContent.length())
                 .as("text content length")
                 .isLessThanOrEqualTo(maxLength);
+    }
+
+    /**
+     * Sets up the mock server to accept a single POST to the webhook URL, capturing the request body.
+     */
+    private void setupPostExpectation() {
+        mockServer.expect(ExpectedCount.once(), requestTo(webhookUrl.toString()))
+                .andExpect(request -> capturedRequestBody = ((MockClientHttpRequest) request).getBodyAsString())
+                .andRespond(withStatus(HttpStatus.OK));
     }
 
     /**

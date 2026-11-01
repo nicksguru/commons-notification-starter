@@ -10,8 +10,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.web.client.RestOperations;
+import org.springframework.web.client.RestClient;
 
+import java.net.URI;
 import java.net.URL;
 import java.util.List;
 import java.util.Map;
@@ -48,7 +49,7 @@ public class LightweightSlackServiceImpl implements LightweightSlackService {
     private final String serviceName;
     private final String webHookUrl;
 
-    private final RestOperations restClient;
+    private final RestClient restClient;
     private final HttpHeaders headers;
     private final ObjectMapper objectMapper;
 
@@ -63,7 +64,7 @@ public class LightweightSlackServiceImpl implements LightweightSlackService {
      */
     @ConstraintArguments
     public LightweightSlackServiceImpl(String serviceName, URL webHookUrl,
-            RestOperations restClient, ObjectMapper objectMapper) {
+            RestClient restClient, ObjectMapper objectMapper) {
         this.serviceName = checkNotBlank(serviceName, _LightweightSlackServiceImplArgumentsMeta.SERVICENAME.name());
 
         this.webHookUrl = check(webHookUrl, _LightweightSlackServiceImplArgumentsMeta.WEBHOOKURL.name())
@@ -114,7 +115,12 @@ public class LightweightSlackServiceImpl implements LightweightSlackService {
     }
 
     private void callSlackApi(HttpEntity<?> request) {
-        restClient.postForEntity(webHookUrl, request, Void.class);
+        restClient.post()
+                .uri(URI.create(webHookUrl))
+                .headers(hdr -> hdr.addAll(request.getHeaders()))
+                .body(request.getBody())
+                .retrieve()
+                .toBodilessEntity();
     }
 
     private Map<String, Object> createMarkdownMessage(String title, String text) {
